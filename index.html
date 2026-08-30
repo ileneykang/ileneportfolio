@@ -19,6 +19,83 @@
   </noscript>
 </head>
 <body>
+  <!-- ── TEMPORARY ACCESS GATE ─────────────────────────────────────────────
+       Soft lock only. The page bundle still loads underneath and the source is
+       in the public repo — this stops casual visitors, it is NOT real security.
+       The gate re-asserts itself because the page bundler replaces <html> on
+       load. To remove the lock: delete this whole block (through the matching
+       end comment) and redeploy. -->
+  <script>
+  (function () {
+    var HASH = '2743e2174049225f5d65bda2faee0273f538f7f52e84be3b318ae1aa2bb08e02';
+    var KEY = '__portfolio_unlocked';
+    try { if (sessionStorage.getItem(KEY) === HASH) { window.__gateUnlocked = true; } } catch (e) {}
+    if (window.__gateUnlocked) return;
+
+    function sha256(str) {
+      return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function (buf) {
+        return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+          return ('0' + b.toString(16)).slice(-2);
+        }).join('');
+      });
+    }
+
+    function build() {
+      var wrap = document.createElement('div');
+      wrap.id = '__gate';
+      wrap.setAttribute('style', [
+        'position:fixed', 'inset:0', 'z-index:2147483647', 'background:#f4f1ea',
+        'display:flex', 'align-items:center', 'justify-content:center', 'padding:24px',
+        'font-family:Georgia,\'Times New Roman\',serif', 'color:#252a34'
+      ].join(';'));
+      wrap.innerHTML =
+        '<div style="width:100%;max-width:360px;text-align:center">' +
+          '<div style="font-size:22px;font-weight:600;margin-bottom:8px;letter-spacing:-0.01em">This portfolio is being finished</div>' +
+          '<div style="font-size:14px;line-height:1.5;color:#6b675e;font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin-bottom:20px">Not quite ready for visitors yet. If you have the access phrase, enter it below.</div>' +
+          '<form id="__gateForm" style="display:flex;gap:8px">' +
+            '<input id="__gatePw" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Access phrase" aria-label="Access phrase" style="flex:1;padding:10px 12px;font-size:15px;border:1px solid #d8d2c4;border-radius:8px;background:#fdfcf8;font-family:-apple-system,sans-serif">' +
+            '<button type="submit" style="padding:10px 16px;font-size:14px;border:0;border-radius:8px;background:#252a34;color:#fff;cursor:pointer;font-family:-apple-system,sans-serif">Enter</button>' +
+          '</form>' +
+          '<div id="__gateErr" aria-live="polite" style="color:#b3261e;font-size:13px;margin-top:12px;min-height:16px;font-family:-apple-system,sans-serif"></div>' +
+        '</div>';
+      var err = wrap.querySelector('#__gateErr');
+      wrap.querySelector('#__gateForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        err.textContent = '';
+        var val = wrap.querySelector('#__gatePw').value;
+        sha256(val).then(function (h) {
+          if (h === HASH) {
+            window.__gateUnlocked = true;
+            try { sessionStorage.setItem(KEY, HASH); } catch (x) {}
+            var g = document.getElementById('__gate');
+            if (g) g.remove();
+            var r = document.documentElement.style; r.overflow = ''; r.height = '';
+          } else {
+            err.textContent = 'That phrase is not right.';
+            wrap.querySelector('#__gatePw').value = '';
+            wrap.querySelector('#__gatePw').focus();
+          }
+        }).catch(function () { err.textContent = 'This browser blocked the check.'; });
+      });
+      return wrap;
+    }
+
+    var focused = false;
+    function assert() {
+      if (window.__gateUnlocked) return;
+      var root = document.body || document.documentElement;
+      if (root && !document.getElementById('__gate')) {
+        root.appendChild(build());
+        if (!focused) { var i = document.getElementById('__gatePw'); if (i) { i.focus(); focused = true; } }
+      }
+      var s = document.documentElement.style;
+      s.overflow = 'hidden'; s.height = '100%';
+      requestAnimationFrame(assert);
+    }
+    requestAnimationFrame(assert);
+  })();
+  </script>
+  <!-- ── end access gate ───────────────────────────────────────────────── -->
   <div id="__bundler_thumbnail">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
     <rect width="1200" height="800" fill="#f4f1ea"></rect>
