@@ -105,16 +105,28 @@
     }
 
     var focused = false;
+    // The next frame is scheduled in `finally`, never as the last statement of
+    // the body: while the page bundler swaps <html> via documentElement
+    // .replaceWith(), document.body can be momentarily unavailable and an
+    // append can throw. If that throw escaped, the loop would die and the gate
+    // would never come back — which is exactly what happened on the network
+    // (slower) but not from local disk (faster).
     function assert() {
-      if (window.__gateUnlocked) return;
-      var root = document.body || document.documentElement;
-      if (root && !document.getElementById('__gate')) {
-        root.appendChild(build());
-        if (!focused) { var i = document.getElementById('__gateEmail'); if (i) { i.focus(); focused = true; } }
+      try {
+        if (window.__gateUnlocked) return;
+        var root = document.body || document.documentElement;
+        if (!root) return;
+        if (!document.getElementById('__gate')) {
+          root.appendChild(build());
+          if (!focused) { var i = document.getElementById('__gateEmail'); if (i) { i.focus(); focused = true; } }
+        }
+        var s = document.documentElement.style;
+        s.overflow = 'hidden'; s.height = '100%';
+      } catch (e) {
+        /* transient DOM swap — retry next frame */
+      } finally {
+        if (!window.__gateUnlocked) requestAnimationFrame(assert);
       }
-      var s = document.documentElement.style;
-      s.overflow = 'hidden'; s.height = '100%';
-      requestAnimationFrame(assert);
     }
     requestAnimationFrame(assert);
   })();
